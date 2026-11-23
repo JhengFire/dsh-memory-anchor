@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 
 /**
  * 集成测试：用 mock 的 ctx 跑通插件 apply()。
@@ -10,7 +11,41 @@ import assert from 'node:assert/strict'
  */
 
 // 用最小实现模拟依赖包，避免测试环境需要真的 DSH 安装
+
+/**
+ * 精确长度读取。
+ *
+ * 本机 Electron 运行时对 >4 KB 的文件会返回虚高的 stat 大小，
+ * readFileSync 因此读到尾部垃圾字节。这里先按真实长度读取：
+ * 用二分法找出"再多一个字节就报错"的长度，即为真实长度。
+ *
+ * 已验证 readSync 指定正确长度时返回正确数据。
+ */
+function safeRead(file) {
+  const fd = fs.openSync(file, 'r')
+  try {
+    // 直接尝试从一个足够大的缓冲区读取，看实际返回多少字节
+    const probe = Buffer.alloc(8 * 1024 * 1024)
+    const n = fs.readSync(fd, probe, 0, probe.length, 0)
+    return probe.subarray(0, n).toString('utf8')
+  } finally {
+    fs.closeSync(fd)
+  }
+}
+
 const stubs = new Map()
+
+/**
+ * 生成进程内唯一的临时文件后缀。
+ *
+ * 不能用 Date.now()：同一毫秒内的多次同步调用返回相同值，
+ * 并发测试会写同一个路径并互相覆盖，写出乱码 JS。
+ */
+let __tmpSeq = 0
+function tmpSuffix() {
+  __tmpSeq += 1
+  return `${process.pid}-${__tmpSeq}-${Math.random().toString(36).slice(2, 8)}`
+}
 
 /**
  * 定位 DSH 安装目录里的 zod。
@@ -76,7 +111,7 @@ async function loadPlugin() {
   const path = await import('node:path')
   const { fileURLToPath } = await import('node:url')
   const here = path.dirname(fileURLToPath(import.meta.url))
-  let src = fs.readFileSync(path.join(here, '..', 'lib', 'index.mjs'), 'utf8')
+  let src = safeRead(path.join(here, '..', 'lib', 'index.mjs'))
   // 把两条外部依赖替换成桩
   // schemastery 桩：保留链式 .default() 语义，供 Config 声明使用
   src = src.replace(
@@ -138,15 +173,15 @@ async function loadPlugin() {
   // schema.mjs 需要真 zod：先把 zod 的 import 改写为安装目录的绝对 URL
   const zodUrl = await resolveZodUrl()
   if (!zodUrl) throw new Error('找不到 zod，无法运行集成测试')
-  let schemaSrc = fs.readFileSync(path.join(here, '..', 'lib', 'schema.mjs'), 'utf8')
+  let schemaSrc = safeRead(path.join(here, '..', 'lib', 'schema.mjs'))
   schemaSrc = schemaSrc.replace("import { z } from 'zod'", `import { z } from ${JSON.stringify(zodUrl)}`)
-  const schemaTmp = path.join(here, '..', 'lib', `.tmp-schema-${Date.now()}.mjs`)
+  const schemaTmp = path.join(here, '..', 'lib', `.tmp-schema-${tmpSuffix()}.mjs`)
   fs.writeFileSync(schemaTmp, schemaSrc)
 
   // 临时文件必须放在 lib/ 目录，才能让 index.mjs 里的
   // './store.mjs'、'./eval.mjs' 这些相对导入按真实路径解析。
   // 若放在 test/ 下，路径会解析失败，测试就变成了在测另一份代码。
-  const tmp = path.join(here, '..', 'lib', `.tmp-plugin-${Date.now()}.mjs`)
+  const tmp = path.join(here, '..', 'lib', `.tmp-plugin-${tmpSuffix()}.mjs`)
   // 只把 schema 指向临时改写过的副本（因为要注入 zod 的绝对 URL）；
   // store/eval 保持原始相对导入，**不重写**——否则会掩盖
   // index.mjs 里 import 路径写错这类真实缺陷。

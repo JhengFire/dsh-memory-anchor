@@ -20,6 +20,8 @@ const PLAIN = [
   ['core', 'test/core.test.mjs'],
   ['store', 'test/store.test.mjs'],
   ['eval', 'test/eval.test.mjs'],
+  ['report', 'test/report.test.mjs'],
+  ['scope', 'test/scope.test.mjs'],
 ]
 
 /** 需要 Electron 运行时的套件（要读 app.asar 内的 zod） */

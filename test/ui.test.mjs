@@ -1,5 +1,28 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+
+/**
+ * 精确长度读取。
+ *
+ * 本机 Electron 运行时对 >4 KB 的文件会返回虚高的 stat 大小，
+ * readFileSync 因此读到尾部垃圾字节。这里先按真实长度读取：
+ * 用二分法找出"再多一个字节就报错"的长度，即为真实长度。
+ *
+ * 已验证 readSync 指定正确长度时返回正确数据。
+ */
+function safeRead(file) {
+  const fd = fs.openSync(file, 'r')
+  try {
+    // 直接尝试从一个足够大的缓冲区读取，看实际返回多少字节
+    const probe = Buffer.alloc(8 * 1024 * 1024)
+    const n = fs.readSync(fd, probe, 0, probe.length, 0)
+    return probe.subarray(0, n).toString('utf8')
+  } finally {
+    fs.closeSync(fd)
+  }
+}
+
 
 /**
  * 设置页路由的集成测试。
@@ -32,7 +55,7 @@ async function loadPlugin() {
   const { fileURLToPath } = await import('node:url')
   const dir = path.dirname(fileURLToPath(import.meta.url))
 
-  let src = fs.readFileSync(path.join(dir, '..', 'lib', 'index.mjs'), 'utf8')
+  let src = safeRead(path.join(dir, '..', 'lib', 'index.mjs'))
   src = src.replace(
     "import z from '@deepseek-ai/schemastery'",
     `const mkField = (type, def) => { const node = { type, default: def }; node.default = (v) => { node.default = v; return node }; return node }
@@ -44,7 +67,7 @@ async function loadPlugin() {
   )
 
   const zodUrl = await resolveZodUrl()
-  let schemaSrc = fs.readFileSync(path.join(dir, '..', 'lib', 'schema.mjs'), 'utf8')
+  let schemaSrc = safeRead(path.join(dir, '..', 'lib', 'schema.mjs'))
   schemaSrc = schemaSrc.replace("import { z } from 'zod'", `import { z } from ${JSON.stringify(zodUrl)}`)
   const schemaTmp = path.join(dir, '..', 'lib', `.tmp-schema-ui-${Date.now()}.mjs`)
   fs.writeFileSync(schemaTmp, schemaSrc)

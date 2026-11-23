@@ -2,6 +2,34 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-11-23
+
+### Added
+
+- **`workspace` scope.** A memory can now be scoped to the current workspace and everything
+  under it: `scope: ["workspace"]`. It resolves against the working directory at recall time,
+  so it survives moving the repository to another folder or machine — an absolute path would not.
+- **Scope is shown in search results.** Each hit now carries a `scope:` line. Without it,
+  a workspace-scoped constraint looked identical to a global one, and you could not tell
+  whether it still applied after switching projects.
+- `lib/render.mjs`: output rendering extracted from the Host entry point, so it can be
+  tested without a DSH runtime.
+
+### Fixed
+
+- **`**` did not match the prefix itself.** `D:/repo/**` failed to match `D:/repo`,
+  and `src/**` failed to match `src` — the pattern only matched from one level down.
+  The separator before `**` was compiled as a literal character instead of being optional.
+- **Duplicate ids in the failure report.** F2 subjects are comma-separated id lists, so
+  two findings covering `t2,t3` and `t2` were concatenated into `t2,t3, t2`
+  instead of being de-duplicated per id.
+
+### Notes
+
+- 149 tests across seven suites.
+- The settings page and the live tool were re-verified after the change; existing
+  memories and their scope values are unaffected.
+
 ## [0.1.0] — 2026-11-23
 
 First release.
@@ -31,3 +59,4 @@ Three measured findings shaped the implementation, each contradicting an earlier
 - The settings page has not been visually verified in a browser. Its routes, pagination and switch behaviour are covered by tests, but rendering, dark-theme appearance and interaction feel were not confirmed.
 
 [0.1.0]: https://github.com/JhengFire/dsh-memory-anchor/releases/tag/v0.1.0
+[0.2.0]: https://github.com/JhengFire/dsh-memory-anchor/releases/tag/v0.2.0

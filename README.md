@@ -13,6 +13,22 @@ to help.
 The plugin adds a **Memory** section to Settings: a switch that turns it on or off,
 and the saved memories below it, ten per page.
 
+
+### Scope
+
+```
+[]                     global — recall from anywhere
+["workspace"]          the current workspace directory and everything under it
+["src/surface/**"]     that path and its subtree
+["workspace", "src/api/**"]  either one matches
+```
+
+`workspace` resolves against the working directory at recall time. **Prefer it over an
+absolute path**, which breaks the moment the repository moves to another machine or folder.
+
+A scope mismatch does not hide an entry — it halves its relevance, so a strong enough
+match still surfaces.
+
 ## Install
 
 Requires DeepSeek Harness `>=0.2.1-rc.3`.
