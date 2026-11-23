@@ -1,0 +1,88 @@
+name: Bug report
+description: Something behaves differently from what the documentation says
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please check `docs/lightweight-agent-memory-design.md` appendix D —
+        several surprising behaviours are documented there as intentional (for example,
+        path scope down-weights instead of filtering, and retrieval is word-overlap based).
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: From `package.json`, or the Plugins panel.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: dsh-version
+    attributes:
+      label: DSH version
+      description: The `@deepseek-ai/dsh` version of the installation running the plugin.
+      placeholder: "0.2.2-rc.5"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11 / macOS 15 / Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Retrieval (find returns wrong or missing entries)
+        - Writing (add is refused or accepts something it should not)
+        - Conflict / resolve
+        - Lifecycle (stale, retired, decay)
+        - Failure report (eval)
+        - Settings page
+        - Installation / activation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: For retrieval problems, include the query and the entries you expected to match. Recall issues are about scoring, so the numbers matter.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. memory add ...
+        2. memory find ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Tool output, or the diagnostic from the Plugins panel. Remove anything private.
+      render: shell
+    validations:
+      required: false

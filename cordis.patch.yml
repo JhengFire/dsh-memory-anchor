@@ -1,0 +1,29 @@
+# dsh-memory-anchor bundle patch
+#
+# Inserts the memory plugin row into the profile roster.
+#
+# The plugin contributes two surfaces:
+#   Host   — a single `memory` tool, a storage domain for durable records,
+#            one system-prompt line, and the /lwm/* routes the settings page reads.
+#   Client — a "Memory" section in Settings: an on/off switch plus the saved
+#            memories at ten per page.
+#
+# Storage lives in its own domain, outside the session log, by design.
+- insert:
+    - id: memory-anchor
+      name: dsh-memory-anchor
+      config:
+        # Results returned by `find`.
+        limit: 5
+        # Days without verification before an entry turns stale.
+        staleDays: 180
+        # Misses without any use before an entry retires.
+        retireMisses: 3
+        # Window within which a reversal counts as immediately decidable.
+        conflictWindowSec: 1800
+        # Record usage events for the failure report.
+        evalEnabled: true
+        # Memory on/off. The Settings switch writes this value.
+        enabled: true
+        # Add the one-line usage hint to the system prompt.
+        promptSection: true

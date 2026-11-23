@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Design notes and known behaviours
+    url: https://github.com/JhengFire/dsh-memory-anchor/blob/main/docs/lightweight-agent-memory-design.md
+    about: Appendix D records measured findings that contradict the original design. Check it before filing a bug about retrieval or scope.
+  - name: DeepSeek Harness documentation
+    url: https://github.com/deepseek-ai/dsh
+    about: For questions about DSH itself rather than this plugin.

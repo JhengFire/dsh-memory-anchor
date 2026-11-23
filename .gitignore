@@ -1,0 +1,25 @@
+# Node
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Test runner leftovers
+lib/.tmp-*.mjs
+test/.tmp-*.mjs
+
+# Local data — a memory store belongs to a user's profile, never to the repo
+.lwm/
+*.db
+*.db-journal
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Build output
+dist/
+*.tgz

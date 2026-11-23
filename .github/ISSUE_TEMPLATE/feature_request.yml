@@ -1,0 +1,61 @@
+name: Feature request
+description: Propose a capability, or argue for changing one
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project is deliberately narrow. It records only four kinds of entry and
+        refuses to store facts that other tools already answer. Before proposing a
+        feature, see whether it makes the library **smaller and more trustworthy**,
+        or merely larger — see `CONTRIBUTING.md`.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What goes wrong today, in concrete terms. Describe the situation, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Including doing nothing, or solving it outside the plugin.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: cost
+    attributes:
+      label: What does it cost every turn?
+      description: >-
+        Anything registered into the system prompt or the tool list is paid on every
+        turn, whether or not it is used. Zero-cost-by-default is a core constraint.
+      options:
+        - Nothing when unused (lazy, on demand)
+        - One line of system prompt
+        - A new tool or a new parameter
+        - Injected on every turn
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acknowledges
+    attributes:
+      label: Confirmations
+      options:
+        - label: This does not duplicate information already derivable from code, git, or existing rules files.
+          required: true
+        - label: I have read the design document's section on what the plugin deliberately does not do.
+          required: true

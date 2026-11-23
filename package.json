@@ -1,0 +1,74 @@
+{
+  "name": "dsh-memory-anchor",
+  "version": "0.1.0",
+  "description": "Records only the decisions, rejections and root causes that code cannot describe — each with a verify step — and reports where the memory still failed to help.",
+  "type": "module",
+  "main": "./lib/index.mjs",
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "icon": "./icon.svg",
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.2.1-rc.3"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale"
+      ],
+      "platform": "web"
+    }
+  },
+  "files": [
+    "lib",
+    "locale",
+    "scripts",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "LICENSE",
+    "docs/DETAIL.md",
+    "README.zh-CN.md"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "agent-memory",
+    "memory",
+    "context-engineering",
+    "ai-agent",
+    "coding-agent",
+    "decision-log"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JhengFire/dsh-memory-anchor.git"
+  },
+  "homepage": "https://github.com/JhengFire/dsh-memory-anchor#readme",
+  "bugs": {
+    "url": "https://github.com/JhengFire/dsh-memory-anchor/issues"
+  },
+  "license": "MIT",
+  "author": "JhengFire",
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": ">=3.19.0",
+    "@deepseek-ai/dsh-tools": "*",
+    "zod": ">=4.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/core.test.mjs test/store.test.mjs test/eval.test.mjs",
+    "test:all": "node scripts/test-all.mjs",
+    "check": "node bench/check-client.mjs"
+  }
+}
