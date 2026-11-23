@@ -3,5 +3,25 @@
     "title": "记忆锚点",
     "description": "只记录代码里查不到的决策、被否决的方案和踩坑根因，每条都带验证方式；并报告记忆在哪些时刻没帮上忙。",
     "detail": "docs/DETAIL.md"
-  }
+  },
+  "embeddingTitle": "向量模型（可选）",
+  "embeddingOff": "未启用 · 使用本地向量",
+  "embeddingOn": "已启用",
+  "embeddingDesc": "启用后，写入记忆时会调用所选服务的接口生成语义向量，检索能理解同义表达和跨语言。不启用则使用本地哈希向量：零依赖、可离线，但只认字面。",
+  "embeddingNone": "不启用（本地向量）",
+  "embeddingProvider": "服务商",
+  "embeddingApiUrl": "API 地址",
+  "embeddingModel": "模型",
+  "embeddingDimensions": "向量维度",
+  "embeddingDimensionsHint": "1024 与 2048 的检索效果实测接近，1024 占用更小。",
+  "embeddingApiKey": "API Key",
+  "embeddingKeyPlaceholder": "粘贴你的 API Key",
+  "embeddingReindexNote": "切换向量模型后，已有记忆仍是旧模型生成的向量。运行 memory 工具的 reindex 可批量重算；在此之前，跨模型的条目会被降权而不是消失。",
+  "embeddingSaved": "已保存",
+  "embeddingSavedMemoryOnly": "已应用，但未能写入配置文件（重启后会恢复）",
+  "testConnection": "测试连接",
+  "testing": "测试中…",
+  "save": "保存",
+  "show": "显示",
+  "hide": "隐藏"
 }

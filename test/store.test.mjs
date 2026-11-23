@@ -127,7 +127,7 @@ test('find: 命中相关记忆', async () => {
   const s = newStore()
   await s.add({ ...base, id: 'lock-lot', claim: '表面处理失败后必须锁 3 个后续 lot' })
   await s.add({ ...base, id: 'dto', kind: 'constraint', claim: 'DTO 统一用 xxx 后缀，不允许用 Dto' })
-  const r = s.find('表面处理失败怎么办')
+  const r = await s.find('表面处理失败怎么办')
   assert.ok(r.length > 0)
   assert.equal(r[0].id, 'lock-lot')
 })
@@ -137,7 +137,7 @@ test('find: scope 匹配的条目排在前面（不匹配的降权而非丢弃�
   await s.add({ ...base, id: 'lock-lot', claim: '表面处理失败后必须锁 3 个后续 lot', scope: ['src/surface/**'] })
   await s.add({ ...base, id: 'equip', claim: '表面处理设备需每日点检', scope: ['src/equip/**'] })
 
-  const inSurface = s.find('表面处理', { cwd: 'src/surface/handler' })
+  const inSurface = await s.find('表面处理', { cwd: 'src/surface/handler' })
   assert.ok(inSurface.some((x) => x.id === 'lock-lot'), '同 scope 的必须召回')
 
   // 设计变更：scope 不匹配不再完全隐藏，而是降权。
@@ -153,7 +153,7 @@ test('find: scope 匹配的条目排在前面（不匹配的降权而非丢弃�
 test('find: 无 scope 的条目视为全局，任何目录都能召回', async () => {
   const s = newStore()
   await s.add({ ...base, id: 'global', claim: '所有时间统一使用 Asia/Shanghai 时区', scope: [] })
-  const r = s.find('时区', { cwd: '任意/目录/深度' })
+  const r = await s.find('时区', { cwd: '任意/目录/深度' })
   assert.ok(r.some((x) => x.id === 'global'))
 })
 
@@ -162,20 +162,20 @@ test('find: retired 默认不返回，但 includeRetired 可见', async () => {
   await s.add({ ...base, id: 'x', claim: '这是一条会被淘汰的记忆' })
   for (let i = 0; i < 3; i++) await s.miss('x')
   assert.equal(s.get('x').status, 'retired')
-  assert.equal(s.find('淘汰的记忆').some((x) => x.id === 'x'), false)
-  assert.equal(s.find('淘汰的记忆', { includeRetired: true }).some((x) => x.id === 'x'), true)
+  assert.equal((await s.find('淘汰的记忆')).some((x) => x.id === 'x'), false)
+  assert.equal((await s.find('淘汰的记忆', { includeRetired: true })).some((x) => x.id === 'x'), true)
 })
 
-test('find: 空查询返回空数组', () => {
-  assert.deepEqual(newStore().find('  '), [])
+test('find: 空查询返回空数组', async () => {
+  assert.deepEqual(await newStore().find('  '), [])
 })
 
 test('find: 结果带 conflictsWith 标注', async () => {
   const s = newStore()
   await s.add({ ...base, id: 'a', kind: 'constraint', claim: '生产环境禁止使用 SNAPSHOT 依赖' })
   await s.add({ ...base, id: 'b', kind: 'constraint', claim: '生产环境允许使用 SNAPSHOT 依赖', force: true, onConflict: 'both' })
-  const r = s.find('SNAPSHOT 依赖', { limit: 10 })
-  const a = r.find((x) => x.id === 'a')
+  const r = await s.find('SNAPSHOT 依赖', { limit: 10 })
+  const a = await r.find((x) => x.id === 'a')
   assert.ok(a, '冲突状态下两条都应该能被召回')
   assert.ok(a.conflictsWith.includes('b') || r.find((x) => x.id === 'b')?.conflictsWith.includes('a'))
 })
@@ -306,7 +306,7 @@ test('find: 无关条目被相关性下限挡住', async () => {
   const s = newStore()
   await s.add({ ...base, id: 'tz', kind: 'constraint', claim: '所有时间统一使用 Asia/Shanghai 时区', scope: [] })
   await s.add({ ...base, id: 'snap', kind: 'constraint', claim: '生产环境禁止使用 SNAPSHOT 依赖', scope: [] })
-  const r = s.find('SNAPSHOT 依赖', { limit: 10 })
+  const r = await s.find('SNAPSHOT 依赖', { limit: 10 })
   const ids = r.map((x) => x.id)
   assert.ok(ids.includes('snap'), '相关条目必须在结果里')
   assert.ok(!ids.includes('tz'), `无关条目不应出现，实际返回 ${ids.join(',')}`)
@@ -320,7 +320,7 @@ test('find: scope 不匹配时降权而非丢弃（刚写入就能查到）', as
     scope: ['src/surface/**'],
   })
   // 从一个不匹配的目录检索
-  const r = s.find('表面处理失败怎么办', { cwd: 'docs/other', limit: 5 })
+  const r = await s.find('表面处理失败怎么办', { cwd: 'docs/other', limit: 5 })
   assert.ok(r.some((x) => x.id === 'lock'), 'scope 不匹配不应导致完全查不到')
 })
 
@@ -328,7 +328,7 @@ test('find: scope 匹配的条目排名高于不匹配的', async () => {
   const s = newStore()
   await s.add({ ...base, id: 'in', kind: 'gotcha', claim: '表面处理失败必须锁批次', scope: ['src/surface/**'] })
   await s.add({ ...base, id: 'out', kind: 'gotcha', claim: '表面处理失败必须锁批次', scope: ['src/equip/**'] })
-  const r = s.find('表面处理失败', { cwd: 'src/surface/x', limit: 5 })
+  const r = await s.find('表面处理失败', { cwd: 'src/surface/x', limit: 5 })
   const posIn = r.findIndex((x) => x.id === 'in')
   const posOut = r.findIndex((x) => x.id === 'out')
   assert.ok(posIn >= 0, '匹配的必须在结果里')
@@ -340,7 +340,7 @@ test('find: relevance 保持 [0,1] 语义（不被业务权重污染）', async 
   await s.add({ ...base, id: 'x', kind: 'rejected', claim: '否决用 Kafka 做缓存失效' })
   await s.use('x')
   await s.use('x')
-  const r = s.find('kafka', { limit: 5 })
+  const r = await s.find('kafka', { limit: 5 })
   for (const item of r) {
     assert.ok(item.relevance <= 1.0, `relevance 不应超过 1，实际 ${item.relevance}`)
     assert.ok(item.relevance >= 0, 'relevance 不应为负')

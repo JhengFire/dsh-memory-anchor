@@ -62,7 +62,7 @@ test('usesWorkspaceScope 正确识别', () => {
 test('find: workspace scope 的条目在工作区内被正常召回', async () => {
   const store = new MemoryStore(memoryAdapter())
   await store.add({ ...base, id: 'ws', claim: '提交前必须跑单测', scope: ['workspace'] })
-  const hits = store.find('提交前必须跑单测', { cwd: 'D:/repo/src', workspace: 'D:/repo' })
+  const hits = await store.find('提交前必须跑单测', { cwd: 'D:/repo/src', workspace: 'D:/repo' })
   assert.ok(hits.some((h) => h.id === 'ws'), '工作区内应召回')
 })
 
@@ -71,18 +71,18 @@ test('find: workspace scope 的条目在工作区外被降权', async () => {
   await store.add({ ...base, id: 'ws', claim: '提交前必须跑单测', scope: ['workspace'] })
   await store.add({ ...base, id: 'gl', claim: '提交前必须跑单测', scope: [] })
 
-  const inside = store.find('提交前必须跑单测', { cwd: 'D:/repo', workspace: 'D:/repo', limit: 10 })
-  const outside = store.find('提交前必须跑单测', { cwd: 'D:/other', workspace: 'D:/repo', limit: 10 })
+  const inside = await store.find('提交前必须跑单测', { cwd: 'D:/repo', workspace: 'D:/repo', limit: 10 })
+  const outside = await store.find('提交前必须跑单测', { cwd: 'D:/other', workspace: 'D:/repo', limit: 10 })
 
-  const inScore = inside.find((h) => h.id === 'ws')?.relevance ?? 0
-  const outScore = outside.find((h) => h.id === 'ws')?.relevance ?? 0
+  const inScore = await inside.find((h) => h.id === 'ws')?.relevance ?? 0
+  const outScore = await outside.find((h) => h.id === 'ws')?.relevance ?? 0
   assert.ok(inScore > outScore, `工作区内(${inScore}) 应高于工作区外(${outScore})`)
 })
 
 test('find: 未指定 workspace 时退化为 cwd', async () => {
   const store = new MemoryStore(memoryAdapter())
   await store.add({ ...base, id: 'ws', claim: '提交前必须跑单测', scope: ['workspace'] })
-  const hits = store.find('提交前必须跑单测', { cwd: 'D:/repo', limit: 10 })
+  const hits = await store.find('提交前必须跑单测', { cwd: 'D:/repo', limit: 10 })
   assert.ok(hits.some((h) => h.id === 'ws'), '缺省应把 cwd 当作 workspace')
 })
 

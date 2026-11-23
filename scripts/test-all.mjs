@@ -22,6 +22,8 @@ const PLAIN = [
   ['eval', 'test/eval.test.mjs'],
   ['report', 'test/report.test.mjs'],
   ['scope', 'test/scope.test.mjs'],
+  ['embedding', 'test/embedding.test.mjs'],
+  ['volcengine', 'test/volcengine.test.mjs'],
 ]
 
 /** 需要 Electron 运行时的套件（要读 app.asar 内的 zod） */

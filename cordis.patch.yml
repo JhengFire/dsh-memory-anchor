@@ -25,5 +25,18 @@
         evalEnabled: true
         # Memory on/off. The Settings switch writes this value.
         enabled: true
+        # Embedding provider. Empty = local hash vectors (no network, works offline).
+        # Set to "volcengine" to call a remote API for semantic vectors.
+        embeddingProvider: ""
+        # API base URL. Empty uses the provider default.
+        embeddingApiUrl: ""
+        # API key. The Settings page writes this; leaving it in a committed file is unsafe.
+        embeddingApiKey: ""
+        # Model name or endpoint ID. Empty uses the provider default.
+        embeddingModelName: ""
+        # Vector dimensions. 1024 retrieves about as well as 2048 and stores half as much.
+        embeddingDimensions: 1024
+        # Per-call timeout in ms. On timeout the write degrades to a local vector.
+        embeddingTimeoutMs: 8000
         # Add the one-line usage hint to the system prompt.
         promptSection: true

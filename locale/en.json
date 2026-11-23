@@ -3,5 +3,25 @@
     "title": "Memory anchor",
     "description": "Records only the decisions, rejections and root causes that code cannot describe, each with a verify step, and reports where the memory still failed to help.",
     "detail": "docs/DETAIL.md"
-  }
+  },
+  "embeddingTitle": "Embedding model (optional)",
+  "embeddingOff": "Off — using local vectors",
+  "embeddingOn": "Enabled",
+  "embeddingDesc": "When enabled, writing a memory calls the selected service to produce a semantic vector, so retrieval understands paraphrases and other languages. When off, a local character-hash vector is used: no dependencies and works offline, but it matches surface form only.",
+  "embeddingNone": "Off (local vectors)",
+  "embeddingProvider": "Provider",
+  "embeddingApiUrl": "API URL",
+  "embeddingModel": "Model",
+  "embeddingDimensions": "Dimensions",
+  "embeddingDimensionsHint": "1024 and 2048 retrieve about equally well in testing; 1024 stores less.",
+  "embeddingApiKey": "API key",
+  "embeddingKeyPlaceholder": "Paste your API key",
+  "embeddingReindexNote": "After switching models, existing memories still hold vectors from the old one. Run the memory tool with action=reindex to recompute them; until then, cross-model entries are down-weighted rather than dropped.",
+  "embeddingSaved": "Saved",
+  "embeddingSavedMemoryOnly": "Applied, but the config file was not written (reverts on restart)",
+  "testConnection": "Test connection",
+  "testing": "Testing…",
+  "save": "Save",
+  "show": "Show",
+  "hide": "Hide"
 }

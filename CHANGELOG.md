@@ -2,6 +2,40 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-11-23
+
+### Added
+
+- **Semantic retrieval via a third-party embedding API.** Off by default; configure a
+  provider in Settings and writes produce real embeddings. Measured on the same probes,
+  paraphrase matching goes from 0.081 to 0.674 and cross-language from 0.000 to 0.604.
+- **Provider registry.** Volcengine Ark ships as the first entry. Adding another provider
+  means one module plus one registry row — the request shape, response parsing and URL
+  normalisation all live behind that seam.
+- **Settings section** for the provider, API URL, model, dimensions and API key. The key
+  is masked, toggleable, and never echoed back in full.
+- **`reindex` action** to recompute vectors after enabling an API or switching models.
+  Defaults to a dry run and resumes where it stopped.
+- Per-model relevance floors (`lib/thresholds.mjs`). Hash and remote vectors occupy
+  different score ranges, so one shared floor either drops real hits or admits noise.
+
+### Fixed
+
+- **`quantize` and `cosineQuantized` hard-coded 512 dimensions.** A 1024- or 2048-dim
+  vector was silently truncated to its first 512 components, producing a plausible but
+  meaningless score. Added dimension-agnostic variants.
+- **Ark returns `data` as an object, not an array.** OpenAI-shaped responses nest one
+  level deeper; parsing Ark's by the OpenAI shape yielded a 200 OK with no vector — the
+  hardest kind of failure to notice.
+
+### Notes
+
+- 190 tests across nine suites.
+- Memory writes never fail because of the API: on error the entry is stored with a local
+  vector and `needsEmbedding: true`.
+- Cross-model vectors are never compared. A mismatched entry is down-weighted, not dropped,
+  so upgrading the model cannot make existing memories disappear.
+
 ## [0.2.0] — 2026-11-23
 
 ### Added
@@ -60,3 +94,4 @@ Three measured findings shaped the implementation, each contradicting an earlier
 
 [0.1.0]: https://github.com/JhengFire/dsh-memory-anchor/releases/tag/v0.1.0
 [0.2.0]: https://github.com/JhengFire/dsh-memory-anchor/releases/tag/v0.2.0
+[0.3.0]: https://github.com/JhengFire/dsh-memory-anchor/releases/tag/v0.3.0

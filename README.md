@@ -29,6 +29,43 @@ absolute path**, which breaks the moment the repository moves to another machine
 A scope mismatch does not hide an entry — it halves its relevance, so a strong enough
 match still surfaces.
 
+## Embedding model (optional, recommended)
+
+By default retrieval uses a **local character-hash vector**: no dependencies and works
+offline, but it matches surface form only. Measured: about 20% on paraphrases and 0% across
+languages — "提交前必须跑单测" does not find "合并代码之前需要执行自动化测试".
+
+Configure an embedding provider in Settings and retrieval understands meaning:
+
+| Pair | Local hash | Volcengine Ark |
+|---|---|---|
+| 提交前必须跑单测 ⟷ 合并代码之前需要执行自动化测试 | 0.081 | **0.674** |
+| 禁止在事务里调外部接口 ⟷ 事务内不要发起跨服务请求 | 0.203 | **0.708** |
+| Chinese query against an English memory | 0.000 | **0.604** |
+
+These are measured values, not estimates.
+
+### Configuration
+
+Settings → Memory anchor → Embedding model: pick a provider, paste the API key, press
+**Test connection**, then save. The key field is masked and toggleable, and the page
+**never echoes the full key** — only its last four characters.
+
+### Failure behaviour
+
+An unreachable API never loses a memory: the write degrades to a local vector and is
+flagged for upgrade. Once the API is back, recompute with `reindex`:
+
+```
+memory action=reindex              # dry run — reports how many need work
+memory action=reindex apply=true   # execute; resumable
+```
+
+### Dimensions
+
+1024 and 2048 measured about equally well (1024 slightly better on separation) while
+using half the storage, so 1024 is the default.
+
 ## Install
 
 Requires DeepSeek Harness `>=0.2.1-rc.3`.
