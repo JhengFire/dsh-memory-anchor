@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.0.2] — 2026-11-23
+
+### Changed
+
+- **The relevance floor for 1024-dimension remote vectors is now 0.50, down from
+  0.55.** Measured against a real store: relevant queries — including an English
+  query for a Chinese memory, which is the whole point of a semantic model —
+  scored between 0.517 and 0.626, so 0.55 silently dropped three of six.
+  Irrelevant queries topped out at 0.299. 0.50 sits in that 0.218-wide gap:
+  six of six relevant queries return, no irrelevant one does.
+
+  The old number came from an earlier sample that only contained same-language
+  paraphrases, which never reach as low as a cross-language match.
+
+### Added
+
+- `bench/recall-verify.mjs` queries the real store with a real API and reports
+  what passes the floor. `bench/threshold-panel.mjs` prints recall and
+  false-positive counts for a range of candidate thresholds. Both read the
+  API key from the profile patch, never from the command line.
+
+### Notes
+
+- 246 tests across fourteen suites.
+
 ## [1.0.1] — 2026-11-23
 
 ### Fixed

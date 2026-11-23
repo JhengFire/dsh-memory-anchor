@@ -1,6 +1,6 @@
 {
   "name": "dsh-memory-anchor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Records only the decisions, rejections and root causes that code cannot describe — each with a verify step — and reports where the memory still failed to help.",
   "type": "module",
   "main": "./lib/index.mjs",
