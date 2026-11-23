@@ -2,6 +2,18 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-11-23
+
+### Changed
+
+- Version bump to make the registration fix available under a fresh version.
+  0.3.1 carries the same code; this release exists because a transient registry
+  propagation delay made 0.3.1 briefly unresolvable right after publishing.
+
+### Notes
+
+- 213 tests across thirteen suites, unchanged from 0.3.1.
+
 ## [0.3.1] — 2026-11-23
 
 ### Fixed
