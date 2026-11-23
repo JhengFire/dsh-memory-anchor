@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.1] — 2026-11-23
+
+### Fixed
+
+- **The embedding panel flashed "Off — using local vectors" on an already
+  configured setup.** Leaving the Settings page and coming back remounts the
+  component, and every piece of state resets, so the collapsed header showed
+  the default "off" until the request came back — a configuration that was
+  saved and working read as unconfigured for a moment. The panel now caches
+  what it fetched for the process lifetime, seeds its state from it on
+  remount, and shows "Loading…" instead of a guessed state before the first
+  answer arrives.
+
+### Notes
+
+- 246 tests across fourteen suites.
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.0.0] — 2026-11-23

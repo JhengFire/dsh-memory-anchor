@@ -6,6 +6,7 @@
   },
   "embeddingTitle": "向量模型（可选）",
   "embeddingOff": "未启用 · 使用本地向量",
+  "embeddingLoading": "读取中…",
   "embeddingOn": "已启用",
   "embeddingDesc": "启用后，写入记忆时会调用所选服务的接口生成语义向量，检索能理解同义表达和跨语言。不启用则使用本地哈希向量：零依赖、可离线，但只认字面。",
   "embeddingNone": "不启用（本地向量）",

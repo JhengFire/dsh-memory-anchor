@@ -6,6 +6,7 @@
   },
   "embeddingTitle": "Embedding model (optional)",
   "embeddingOff": "Off — using local vectors",
+  "embeddingLoading": "Loading…",
   "embeddingOn": "Enabled",
   "embeddingDesc": "When enabled, writing a memory calls the selected service to produce a semantic vector, so retrieval understands paraphrases and other languages. When off, a local character-hash vector is used: no dependencies and works offline, but it matches surface form only.",
   "embeddingNone": "Off (local vectors)",

@@ -105,3 +105,21 @@ test('locale: 中英文 key 集合一致', () => {
   assert.deepEqual(onlyZh, [], `仅中文有: ${onlyZh.join(', ')}`)
   assert.deepEqual(onlyEn, [], `仅英文有: ${onlyEn.join(', ')}`)
 })
+test('client.js: 向量配置面板在缓存已存在时不再闪「未启用」', () => {
+  const body = src.slice(src.indexOf('function EmbeddingPanel(props) {'))
+  const panel = body.slice(0, body.indexOf('\n    function ') + 1 || undefined)
+
+  // 标题文案在拿到配置前不能说「未启用」——那是把未知当成已知。
+  assert.match(
+    panel,
+    /!loaded\s*\?\s*t\('embeddingLoading'\)/,
+    '加载完成前应显示「读取中…」，而不是先报未启用',
+  )
+
+  // 组件重挂载时用缓存初始化，而不是一律从空状态开始。
+  assert.match(panel, /const cached = embeddingCache/, '应从模块级缓存初始化')
+  assert.match(panel, /useState\(\s*cached !== null\s*\)/, 'loaded 初值应取自缓存')
+
+  // 折叠状态也要取数：标题的已启用/未启用依赖它。
+  assert.match(panel, /if \(!loaded\) load\(false\)/, '挂载即加载，不能等展开')
+})
