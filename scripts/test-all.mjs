@@ -24,6 +24,9 @@ const PLAIN = [
   ['scope', 'test/scope.test.mjs'],
   ['embedding', 'test/embedding.test.mjs'],
   ['volcengine', 'test/volcengine.test.mjs'],
+  ['client', 'test/client-sanity.test.mjs'],
+  ['tdz', 'test/tdz-detector.test.mjs'],
+  ['locale', 'test/locale-consistency.test.mjs'],
 ]
 
 /** 需要 Electron 运行时的套件（要读 app.asar 内的 zod） */

@@ -23,5 +23,7 @@
   "testing": "Testing…",
   "save": "Save",
   "show": "Show",
-  "hide": "Hide"
+  "hide": "Hide",
+  "title": "Memory anchor",
+  "description": "Records only the decisions, rejections and root causes that code cannot describe, each with a verify step, and reports where the memory still failed to help."
 }
