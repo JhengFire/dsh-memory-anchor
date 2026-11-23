@@ -2,6 +2,23 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] — 2026-11-23
+
+### Fixed
+
+- **Test connection returned 400 and Save returned 405.** The api() helper passed
+  `init` straight to fetch, and fetch accepts only a string, Blob, FormData or
+  URLSearchParams as body. A plain object was coerced to the string
+  `"[object Object]"`, so the server failed to parse it and answered with status
+  codes that pointed nowhere near the cause. api() now serialises object bodies
+  itself, so no call site has to remember.
+
+### Notes
+
+- 222 tests across fourteen suites. The new suite runs api() against a stubbed
+  fetch and asserts what it actually hands over — the previous tests only exercised
+  the Host routes with curl, which is why this shipped.
+
 ## [0.4.0] — 2026-11-23
 
 ### Changed
