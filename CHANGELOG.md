@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.0.3] — 2026-11-23
+
+### Fixed
+
+- **Switching the embedding model silently dropped every old memory.** Entries
+  embedded with another model have no comparable score, so `find` scored them
+  0 — and 0 is below the relevance floor, so they were filtered out without a
+  word. Change the model and the whole history appears to vanish. They are now
+  returned, ranked last, and rendered with an `unsure` marker naming the model
+  they were embedded with, so the tool output says to run reindex.
+
+### Changed
+
+- The local hash floor moves from 0.15 to 0.10. Its score distribution is an
+  order of magnitude below a remote model's (character n-gram overlap versus
+  learned embeddings); 0.15 sat inside the relevant population rather than in
+  the gap between the two. Documented next to the remote figures.
+
+### Notes
+
+- 250 tests across fifteen suites.
 ## [1.0.2] — 2026-11-23
 
 ### Changed

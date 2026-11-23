@@ -29,6 +29,7 @@ const PLAIN = [
   ['locale', 'test/locale-consistency.test.mjs'],
   ['register', 'test/client-registration.test.mjs'],
   ['request', 'test/client-request.test.mjs'],
+  ['crossmodel', 'test/cross-model.test.mjs'],
 ]
 
 /** 需要 Electron 运行时的套件（要读 app.asar 内的 zod） */
