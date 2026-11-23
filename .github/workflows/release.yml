@@ -1,12 +1,17 @@
 name: Release
 
-# Publishes to npm when a version tag is pushed.
+# Publishes to npm when a version tag is pushed, then creates the GitHub release.
 #
 #   npm version patch
 #   git push --follow-tags
 #
 # Requires an NPM_TOKEN secret in the repository settings
 # (an npm automation token with publish rights for the package).
+#
+# The job is idempotent: if the version already exists on npm — because it was
+# published by hand, or because a tag was pushed twice — publishing is skipped
+# and only the release is created. Re-running a release must never fail merely
+# because the work was already done.
 
 on:
   push:
@@ -17,7 +22,7 @@ permissions:
   contents: write
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +45,7 @@ jobs:
               console.error("::error::package.json is private: true");
               process.exit(1);
             }
-            console.log(`publishing ${p.name}@${p.version}`);
+            console.log(`ok: ${p.name}@${p.version}`);
           '
 
       - name: Run tests
@@ -49,7 +54,24 @@ jobs:
       - name: Validate the client bundle
         run: npm run check
 
+      # Idempotency: decide whether this version still needs publishing.
+      # `npm view` exits non-zero when the version is absent, which is the
+      # normal case for a fresh release.
+      - name: Check whether this version is already on npm
+        id: exists
+        run: |
+          NAME=$(node -p 'require("./package.json").name')
+          VERSION=$(node -p 'require("./package.json").version')
+          if npm view "${NAME}@${VERSION}" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${NAME}@${VERSION} is already on npm — skipping publish"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::${NAME}@${VERSION} is not on npm yet — will publish"
+          fi
+
       - name: Publish
+        if: steps.exists.outputs.published == 'false'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
