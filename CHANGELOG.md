@@ -2,6 +2,26 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-11-23
+
+### Fixed
+
+- **The client plugin never registered, so the Settings section disappeared.**
+  The module ended in a bare `try/catch` that swallowed every error, including a
+  failed `__ModuleLoader__.load()`. The browser then reported only
+  "loaded without registering", with the real cause discarded — the section simply
+  was not there and nothing explained why. A missing loader now throws instead of
+  passing silently.
+
+- The Settings menu label read a top-level `title` while both dictionaries nest it
+  under `meta`, and the inline title still carried the pre-rename name.
+
+### Notes
+
+- 213 tests across thirteen suites. New checks cover registration itself: that
+  `load()` is called exactly once, that an empty `catch` never returns, and that the
+  registered id matches the package name.
+
 ## [0.3.0] — 2026-11-23
 
 ### Added

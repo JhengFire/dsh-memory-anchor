@@ -27,6 +27,7 @@ const PLAIN = [
   ['client', 'test/client-sanity.test.mjs'],
   ['tdz', 'test/tdz-detector.test.mjs'],
   ['locale', 'test/locale-consistency.test.mjs'],
+  ['register', 'test/client-registration.test.mjs'],
 ]
 
 /** 需要 Electron 运行时的套件（要读 app.asar 内的 zod） */
