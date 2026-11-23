@@ -2,6 +2,39 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] — 2026-11-23
+
+The first release with the settings page fully working end to end, which is
+what 1.0 is meant to mark: the switches, the list and the embedding
+configuration all do what the page says.
+
+### Fixed
+
+- **Save on the embedding configuration returned 405.** The read and the write
+  of `/lwm/embedding` were registered as two routes with the same path. The
+  route registry keys routes by `(kind, path)` and rejects a duplicate, and the
+  rejection happened inside an `inject` callback, so both routes were dropped
+  except the first — the page could read the configuration but never save it.
+  They are one handler now, dispatching on the request method.
+
+  0.5.0 fixed the client half of this (object bodies never reaching `fetch` as
+  JSON); the host half was still broken, which is why save kept returning 405
+  even after that release was installed.
+
+### Changed
+
+- The settings-page suites now exercise the embedding routes, and the route
+  existence test asserts every route the page uses rather than only three of
+  them. The missing assertions are why the 405 shipped: the suite tested the
+  read and never the write.
+- `test/plugin.test.mjs` and `test/ui.test.mjs` write their rewritten copies to
+  a temporary directory when `lib/` is not writable, instead of failing with
+  `EPERM` on read-only checkouts and in sandboxes.
+
+### Notes
+
+- 245 tests across fourteen suites.
+
 ## [0.5.0] — 2026-11-23
 
 ### Fixed

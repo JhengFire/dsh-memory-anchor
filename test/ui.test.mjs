@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import os from 'node:os'
 
 /**
  * 精确长度读取。
@@ -39,6 +40,40 @@ function pathToFileUrl(p) {
   return 'file://' + encodeURI(s)
 }
 
+/** 进程内唯一的临时文件后缀（同毫秒内多次调用也不能撞车）。 */
+let __tmpSeq = 0
+function tmpSuffix() {
+  __tmpSeq += 1
+  return `${process.pid}-${__tmpSeq}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+/** 可写的临时目录：检出可能只读，系统临时目录通常可写。 */
+function tempDir() {
+  const dir = os.tmpdir() + '/dsh-memory-anchor-test'
+  fs.mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+/** 探针实测可写性——Windows 上 ACL 与 mode 位不对应。 */
+function canWrite(dir) {
+  const probe = `${dir}/.probe-${tmpSuffix()}`
+  try {
+    fs.writeFileSync(probe, 'x')
+    fs.unlinkSync(probe)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** 把 `from './x.mjs'` 改写成真实 lib/ 的绝对 file:// URL。 */
+function rewriteRelativeImports(src, libDir) {
+  return src.replace(/(from\s+)(['"])(\.\/[^'"]+)\2/g, (_m, pre, q, rel) => {
+    const target = libDir.replace(/\\/g, '/') + '/' + rel.slice(2)
+    return `${pre}${q}${pathToFileUrl(target)}${q}`
+  })
+}
+
 async function resolveZodUrl() {
   const fs = await import('node:fs')
   const dir =
@@ -50,10 +85,10 @@ async function resolveZodUrl() {
 }
 
 async function loadPlugin() {
-  const fs = await import('node:fs')
   const path = await import('node:path')
   const { fileURLToPath } = await import('node:url')
   const dir = path.dirname(fileURLToPath(import.meta.url))
+  const libDir = path.join(dir, '..', 'lib')
 
   let src = safeRead(path.join(dir, '..', 'lib', 'index.mjs'))
   src = src.replace(
@@ -69,11 +104,23 @@ async function loadPlugin() {
   const zodUrl = await resolveZodUrl()
   let schemaSrc = safeRead(path.join(dir, '..', 'lib', 'schema.mjs'))
   schemaSrc = schemaSrc.replace("import { z } from 'zod'", `import { z } from ${JSON.stringify(zodUrl)}`)
-  const schemaTmp = path.join(dir, '..', 'lib', `.tmp-schema-ui-${Date.now()}.mjs`)
+  const schemaTmp = path.join(tempDir(), `.tmp-schema-ui-${tmpSuffix()}.mjs`)
   fs.writeFileSync(schemaTmp, schemaSrc)
   src = src.replace("from './schema.mjs'", `from ${JSON.stringify(pathToFileUrl(schemaTmp))}`)
+  // 临时副本若已把相对导入改写成绝对 URL，上面的精确匹配就不生效；
+  // 兜底把任何指向真实 schema.mjs 的 URL 换掉。
+  const schemaUrl = pathToFileUrl(libDir.replace(/\\/g, '/') + '/schema.mjs')
+  if (!src.includes(JSON.stringify(pathToFileUrl(schemaTmp)))) {
+    src = src.split(schemaUrl).join(pathToFileUrl(schemaTmp))
+  }
 
-  const tmp = path.join(dir, '..', 'lib', `.tmp-ui-${Date.now()}.mjs`)
+  // 临时模块优先就地放在 lib/：这样 './store.mjs'、'./eval.mjs' 这些
+  // 相对导入天然解析到真实文件。lib/ 不可写（只读检出、沙箱）时退到
+  // 系统临时目录，并把相对导入改写成真实 lib/ 的绝对 URL —— 仍然测同一份源码。
+  const suffix = tmpSuffix()
+  const writable = canWrite(libDir)
+  const tmp = writable ? path.join(libDir, `.tmp-ui-${suffix}.mjs`) : path.join(tempDir(), `.tmp-ui-${suffix}.mjs`)
+  if (!writable) src = rewriteRelativeImports(src, libDir.replace(/\\/g, '/'))
   fs.writeFileSync(tmp, src)
   const mod = await import(pathToFileUrl(tmp))
   fs.unlinkSync(tmp)
@@ -203,11 +250,13 @@ async function call(routes, path, req) {
 
 // ---------------- 路由存在性 ----------------
 
-test('ui: 注册了三个设置页路由', async () => {
+test('ui: 设置页路由齐全（含向量配置的读写两条）', async () => {
   const { routes } = await boot()
-  assert.ok(routes.has('/lwm/state'), '缺少 /lwm/state')
-  assert.ok(routes.has('/lwm/list'), '缺少 /lwm/list')
-  assert.ok(routes.has('/lwm/toggle'), '缺少 /lwm/toggle')
+  // 只看 GET 路由不够：保存按钮走的是 POST /lwm/embedding，
+  // 这条曾经没注册上，而测试只覆盖了 GET，于是全绿、保存必挂。
+  for (const p of ['/lwm/state', '/lwm/list', '/lwm/toggle', '/lwm/embedding', '/lwm/embedding/test', '/lwm/delete', '/lwm/clear']) {
+    assert.ok(routes.has(p), `缺少 ${p}`)
+  }
 })
 
 test('ui: 无 webServer 时不报错（纯工具形态仍可用）', async () => {
@@ -448,4 +497,64 @@ test('ui/clear: 空库调用安全', async () => {
   const res = await call(routes, '/lwm/clear', fakeReq('POST', '/lwm/clear', {}))
   assert.equal(res.status, 200)
   assert.equal(res.body.deleted, 0)
+})
+
+// ---------------- 向量配置 ----------------
+//
+// 页面「保存」走的 POST /lwm/embedding 曾长期返回 405：前端 bundle 修好了，
+// 但 host 侧这条路由没注册上，而测试只覆盖了 GET，于是测试全绿、保存必挂。
+// 这里补齐 POST 一侧的覆盖，缺的正是当时漏掉的那一半。
+
+test('ui/embedding: GET 回显配置且不泄露完整 key', async () => {
+  const { routes } = await boot({ ...baseCfg, embeddingApiKey: 'sk-abcdefg1234' })
+  const res = await call(routes, '/lwm/embedding', fakeReq('GET', '/lwm/embedding'))
+  assert.equal(res.status, 200)
+  assert.equal(res.body.hasApiKey, true)
+  assert.equal(res.body.apiKeyTail, '1234')
+  assert.ok(!JSON.stringify(res.body).includes('sk-abcdefg'), '响应里不应出现完整 key')
+  assert.ok(Array.isArray(res.body.providers), '应带回服务商列表供下拉框使用')
+})
+
+test('ui/embedding: POST 保存配置返回 ok 而不是 405', async () => {
+  const { routes } = await boot()
+  const body = {
+    provider: 'volcengine',
+    apiUrl: 'https://ark.cn-beijing.volces.com/api/v3/embeddings',
+    modelName: 'doubao-embedding-vision-251215',
+    dimensions: 1024,
+    apiKey: 'sk-test-0001',
+  }
+  const res = await call(routes, '/lwm/embedding', fakeReq('POST', '/lwm/embedding', body))
+  assert.notEqual(res.status, 405, '保存接口不能以 405 回应 POST')
+  assert.equal(res.status, 200)
+  assert.equal(res.body.ok, true)
+  // mock ctx 没有 configEditor，只能改内存：这种情况必须如实告知，不能谎报已落盘
+  assert.equal(res.body.persisted, false)
+
+  const echo = await call(routes, '/lwm/embedding', fakeReq('GET', '/lwm/embedding'))
+  assert.equal(echo.body.provider, 'volcengine')
+  assert.equal(echo.body.apiUrl, body.apiUrl)
+  assert.equal(echo.body.modelName, body.modelName)
+  assert.equal(echo.body.apiKeyTail, '0001')
+})
+
+test('ui/embedding: POST 空 apiKey 不覆盖已存的 key', async () => {
+  const { routes } = await boot({ ...baseCfg, embeddingApiKey: 'sk-abcdefg1234' })
+  const res = await call(
+    routes,
+    '/lwm/embedding',
+    fakeReq('POST', '/lwm/embedding', { provider: '', apiUrl: '', modelName: '', dimensions: 1024, apiKey: '' }),
+  )
+  assert.equal(res.status, 200)
+  const echo = await call(routes, '/lwm/embedding', fakeReq('GET', '/lwm/embedding'))
+  assert.equal(echo.body.hasApiKey, true, '留空表示不修改，不应清空已保存的 key')
+  assert.equal(echo.body.apiKeyTail, '1234')
+})
+
+test('ui/embedding: 同路径只接受 GET/HEAD 与 POST，其它方法 405', async () => {
+  const { routes } = await boot()
+  const wrong1 = await call(routes, '/lwm/embedding', fakeReq('PUT', '/lwm/embedding'))
+  assert.equal(wrong1.status, 405)
+  const wrong2 = await call(routes, '/lwm/embedding/test', fakeReq('GET', '/lwm/embedding/test'))
+  assert.equal(wrong2.status, 405)
 })

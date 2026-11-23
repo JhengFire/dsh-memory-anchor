@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 /**
  * 集成测试：用 mock 的 ctx 跑通插件 apply()。
@@ -84,6 +86,45 @@ function pathToFileUrl(p) {
   return 'file://' + encodeURI(s)
 }
 
+/**
+ * 可写的临时目录（系统临时目录下的固定子目录）。
+ *
+ * 为什么不用 lib/ 之外的项目内目录：检出可能整体只读，
+ * 而 os.tmpdir() 在沙箱里通常是允许写的。
+ */
+function tempDir() {
+  const dir = path.join(os.tmpdir(), 'dsh-memory-anchor-test')
+  fs.mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+/**
+ * 目录是否可写——用一个探针文件实测，而不是看权限位：
+ * Windows 上 ACL 与 mode 位并不对应。
+ */
+function canWrite(dir) {
+  const probe = path.join(dir, `.probe-${tmpSuffix()}`)
+  try {
+    fs.writeFileSync(probe, 'x')
+    fs.unlinkSync(probe)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 把 `from './x.mjs'` 改写成指向真实 lib/ 的绝对 file:// URL。
+ *
+ * 临时副本一旦移出 lib/，相对导入就会解析到不存在的路径；
+ * 改写后仍导入 lib/ 里的真实模块，测的还是同一份源码。
+ */
+function rewriteRelativeImports(src, libDir) {
+  return src.replace(/(from\s+)(['"])(\.\/[^'"]+)\2/g, (_m, pre, q, rel) => {
+    return `${pre}${q}${pathToFileUrl(path.join(libDir, rel.slice(2)))}${q}`
+  })
+}
+
 async function loadPlugin() {
   // defineTool 与 Config 的桩：保持原语义即可
   stubs.set('@deepseek-ai/schemastery', {
@@ -107,8 +148,6 @@ async function loadPlugin() {
   })
 
   // 拦截 import 由下面的 esbuild-free 方式处理：直接把源码读进来改写依赖
-  const fs = await import('node:fs')
-  const path = await import('node:path')
   const { fileURLToPath } = await import('node:url')
   const here = path.dirname(fileURLToPath(import.meta.url))
   let src = safeRead(path.join(here, '..', 'lib', 'index.mjs'))
@@ -175,17 +214,34 @@ async function loadPlugin() {
   if (!zodUrl) throw new Error('找不到 zod，无法运行集成测试')
   let schemaSrc = safeRead(path.join(here, '..', 'lib', 'schema.mjs'))
   schemaSrc = schemaSrc.replace("import { z } from 'zod'", `import { z } from ${JSON.stringify(zodUrl)}`)
-  const schemaTmp = path.join(here, '..', 'lib', `.tmp-schema-${tmpSuffix()}.mjs`)
+  const schemaTmp = path.join(tempDir(), `.tmp-schema-${tmpSuffix()}.mjs`)
   fs.writeFileSync(schemaTmp, schemaSrc)
 
-  // 临时文件必须放在 lib/ 目录，才能让 index.mjs 里的
-  // './store.mjs'、'./eval.mjs' 这些相对导入按真实路径解析。
-  // 若放在 test/ 下，路径会解析失败，测试就变成了在测另一份代码。
-  const tmp = path.join(here, '..', 'lib', `.tmp-plugin-${tmpSuffix()}.mjs`)
+  // 临时文件只能放 lib/：index.mjs 里有 './store.mjs'、'./eval.mjs'
+  // 这些相对导入，只有与真实 lib/ 同目录才能解析到真实文件。
+  // 但 lib/ 不一定可写（沙箱或只读检出时写入是 EPERM），
+  // 所以先做一次探针，可写才就地写；否则退到系统临时目录，
+  // 把相对导入改写成指向真实 lib/ 的绝对 URL —— 仍然测的是同一份源码。
+  const libDir = path.join(here, '..', 'lib')
+  const suffix = tmpSuffix()
+  const inLib = `${libDir}/.tmp-plugin-${suffix}.mjs`
+  const writable = canWrite(libDir)
+  const tmp = writable ? inLib : `${tempDir()}/.tmp-plugin-${suffix}.mjs`
+  if (!writable) {
+    src = rewriteRelativeImports(src, libDir)
+  }
   // 只把 schema 指向临时改写过的副本（因为要注入 zod 的绝对 URL）；
   // store/eval 保持原始相对导入，**不重写**——否则会掩盖
   // index.mjs 里 import 路径写错这类真实缺陷。
+  //
+  // 例外：临时副本移出了 lib/ 时，'./schema.mjs' 会被 rewriteRelativeImports
+  // 先改写成绝对 URL，这里的字符串替换就匹配不到了，所以一并改写旧式写法。
   src = src.replace("from './schema.mjs'", `from ${JSON.stringify(pathToFileUrl(schemaTmp))}`)
+  // 空白差异命中不了上面的精确匹配；兜底：任何指向真实 schema.mjs 的 URL 都换掉
+  const schemaUrl = pathToFileUrl(path.join(libDir, 'schema.mjs'))
+  if (!src.includes(JSON.stringify(pathToFileUrl(schemaTmp)))) {
+    src = src.split(schemaUrl).join(pathToFileUrl(schemaTmp))
+  }
   fs.writeFileSync(tmp, src)
   const mod = await import(pathToFileUrl(tmp))
   fs.unlinkSync(tmp)
